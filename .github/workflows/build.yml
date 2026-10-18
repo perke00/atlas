@@ -1,0 +1,34 @@
+name: ATLAS build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # CMake build + tests on Windows (MSVC), Linux and macOS.
+  # NOTE: CMakeLists.txt was never executed in the author's sandbox; the first run of this job is its first test.
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  # The exact path that was tested in the sandbox: g++ Makefile, strict warnings, ASan + UBSan.
+  linux-make-sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests (strict warnings, -Werror)
+        run: make test
+      - name: Tests under AddressSanitizer + UBSan
+        run: make sanitize
